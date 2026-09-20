@@ -485,8 +485,11 @@ def mission_replay(
         items = [x for x in items if x.resource == resource]
     if policy:
         items = [x for x in items if x.policy_decision == policy]
-    if human_intervention:
-        items = [x for x in items if x.action == CanonicalEventAction.HUMAN_APPROVAL]
+    if human_intervention is not None:
+        if human_intervention:
+            items = [x for x in items if x.action == CanonicalEventAction.HUMAN_APPROVAL]
+        else:
+            items = [x for x in items if x.action != CanonicalEventAction.HUMAN_APPROVAL]
     mission_risk = _risk(store)["level"]
     if risk:
         if mission_risk != risk.upper():
