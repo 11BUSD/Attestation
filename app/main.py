@@ -345,7 +345,9 @@ def add_event(mission_id: str, payload: MissionEventIn) -> MissionEvent:
         raise HTTPException(status_code=404, detail="Mission not found")
 
     event_id = payload.event_id or str(uuid4())
-    normalized_mission_id = payload.mission_id or mission_id
+    if payload.mission_id and payload.mission_id != mission_id:
+        raise HTTPException(status_code=400, detail="Path mission_id does not match payload mission_id")
+    normalized_mission_id = mission_id
     event = MissionEvent(
         event_id=event_id,
         mission_id=normalized_mission_id,
@@ -414,14 +416,30 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
         {"from": store.mission.actor_id, "to": store.mission.mission_id, "relationship": "INITIATED"},
     ]
 
+    action_relationship_map = {
+        CanonicalEventAction.FILE_READ: "READ",
+        CanonicalEventAction.FILE_WRITTEN: "WROTE",
+        CanonicalEventAction.TOOL_INVOKED: "CALLED",
+        CanonicalEventAction.MCP_INVOKED: "CALLED",
+        CanonicalEventAction.COMMAND_EXECUTED: "CALLED",
+    }
+
     for event in store.events:
+        nodes.append({"id": event.event_id, "type": "Event"})
         nodes.append({"id": event.resource, "type": event.resource_type})
-        edges.append({"from": store.mission.actor_id, "to": event.resource, "relationship": "USED"})
+        edges.append({"from": store.mission.actor_id, "to": event.event_id, "relationship": "INITIATED"})
+        edges.append(
+            {
+                "from": event.event_id,
+                "to": event.resource,
+                "relationship": action_relationship_map.get(event.action, "USED"),
+            }
+        )
 
     for evidence in store.evidence:
         nodes.append({"id": evidence.evidence_id, "type": "Evidence"})
         for ref in evidence.related_events:
-            edges.append({"from": evidence.evidence_id, "to": ref, "relationship": "SUPPORTED_BY"})
+            edges.append({"from": ref, "to": evidence.evidence_id, "relationship": "SUPPORTED_BY"})
 
     return {"mission_id": mission_id, "nodes": nodes, "relationships": edges}
 

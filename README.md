@@ -14,16 +14,16 @@ uvicorn app.main:app --reload
 ## MVP API
 
 - `POST /missions`
-- `GET /missions/:id`
-- `POST /missions/:id/events`
-- `POST /missions/:id/evidence`
-- `GET /missions/:id/evidence`
-- `GET /missions/:id/graph`
-- `GET /missions/:id/passport`
-- `GET /missions/:id/replay`
-- `POST /missions/:id/verify`
-- `GET /missions/:id/risk`
-- `GET /missions/:id/claims`
+- `GET /missions/{mission_id}`
+- `POST /missions/{mission_id}/events`
+- `POST /missions/{mission_id}/evidence`
+- `GET /missions/{mission_id}/evidence`
+- `GET /missions/{mission_id}/graph`
+- `GET /missions/{mission_id}/passport`
+- `GET /missions/{mission_id}/replay`
+- `POST /missions/{mission_id}/verify`
+- `GET /missions/{mission_id}/risk`
+- `GET /missions/{mission_id}/claims`
 
 ## Principles implemented
 

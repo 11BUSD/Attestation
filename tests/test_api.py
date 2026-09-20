@@ -102,6 +102,7 @@ def test_graph_replay_and_risk():
     graph = client.get(f"/missions/{mission_id}/graph")
     assert graph.status_code == 200
     assert any(edge["relationship"] == "AUTHORIZED" for edge in graph.json()["relationships"])
+    assert any(node["type"] == "Event" for node in graph.json()["nodes"])
 
     replay = client.get(f"/missions/{mission_id}/replay", params={"human_intervention": True})
     assert replay.status_code == 200
@@ -110,3 +111,21 @@ def test_graph_replay_and_risk():
     risk = client.get(f"/missions/{mission_id}/risk")
     assert risk.status_code == 200
     assert risk.json()["level"] in {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
+
+
+def test_event_payload_mission_mismatch_is_rejected():
+    mission_id = _create_mission()
+    other_id = _create_mission()
+    response = client.post(
+        f"/missions/{mission_id}/events",
+        json={
+            "mission_id": other_id,
+            "actor_id": "factory-agent-1",
+            "actor_type": "AUTONOMOUS_AGENT",
+            "action": "CONTEXT_LOADED",
+            "resource": "mission-context",
+            "resource_type": "Context",
+            "source": "ingest",
+        },
+    )
+    assert response.status_code == 400
