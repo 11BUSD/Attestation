@@ -347,6 +347,8 @@ def add_event(mission_id: str, payload: MissionEventIn) -> MissionEvent:
     event_id = payload.event_id or str(uuid4())
     if payload.mission_id and payload.mission_id != mission_id:
         raise HTTPException(status_code=400, detail="Path mission_id does not match payload mission_id")
+    if any(existing.event_id == event_id for existing in store.events):
+        raise HTTPException(status_code=400, detail=f"Duplicate event_id for mission: {event_id}")
     normalized_mission_id = mission_id
     event = MissionEvent(
         event_id=event_id,
