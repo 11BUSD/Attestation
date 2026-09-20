@@ -382,8 +382,11 @@ def add_evidence(mission_id: str, payload: EvidenceIn) -> Evidence:
     if unknown_event_refs:
         raise HTTPException(status_code=400, detail=f"Unknown related_events for mission: {unknown_event_refs}")
 
+    evidence_id = payload.evidence_id or str(uuid4())
+    if any(existing.evidence_id == evidence_id for existing in store.evidence):
+        raise HTTPException(status_code=400, detail=f"Duplicate evidence_id for mission: {evidence_id}")
     evidence = Evidence(
-        evidence_id=payload.evidence_id or str(uuid4()),
+        evidence_id=evidence_id,
         type=payload.type,
         source=payload.source,
         timestamp=payload.timestamp,
