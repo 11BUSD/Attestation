@@ -129,3 +129,45 @@ def test_event_payload_mission_mismatch_is_rejected():
         },
     )
     assert response.status_code == 400
+
+
+def test_evidence_related_events_must_belong_to_same_mission():
+    mission_id = _create_mission()
+    other_id = _create_mission()
+    other_event = client.post(
+        f"/missions/{other_id}/events",
+        json={
+            "actor_id": "factory-agent-1",
+            "actor_type": "AUTONOMOUS_AGENT",
+            "action": "TOOL_INVOKED",
+            "resource": "pytest",
+            "resource_type": "Tool",
+            "source": "runner",
+        },
+    )
+    assert other_event.status_code == 200
+
+    evidence = client.post(
+        f"/missions/{mission_id}/evidence",
+        json={
+            "type": "tool result",
+            "source": "runner",
+            "content": "tool-output",
+            "related_events": [other_event.json()["event_id"]],
+            "collector": "attest-ingest",
+        },
+    )
+    assert evidence.status_code == 400
+
+
+def test_verify_rejects_unknown_evidence_ids():
+    mission_id = _create_mission()
+    response = client.post(
+        f"/missions/{mission_id}/verify",
+        json={
+            "claim": "Authentication vulnerability fixed",
+            "evidence_ids": ["missing-evidence-id"],
+            "independent_checks_passed": True,
+        },
+    )
+    assert response.status_code == 400

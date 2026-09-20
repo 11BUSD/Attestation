@@ -375,6 +375,10 @@ def add_evidence(mission_id: str, payload: EvidenceIn) -> Evidence:
     store = _DB.get(mission_id)
     if not store:
         raise HTTPException(status_code=404, detail="Mission not found")
+    valid_event_ids = {event.event_id for event in store.events}
+    unknown_event_refs = [event_id for event_id in payload.related_events if event_id not in valid_event_ids]
+    if unknown_event_refs:
+        raise HTTPException(status_code=400, detail=f"Unknown related_events for mission: {unknown_event_refs}")
 
     evidence = Evidence(
         evidence_id=payload.evidence_id or str(uuid4()),
@@ -506,7 +510,10 @@ def verify_claim(mission_id: str, payload: VerificationRequest) -> ClaimRecord:
         raise HTTPException(status_code=404, detail="Mission not found")
 
     referenced_evidence = {e.evidence_id for e in store.evidence}
-    evidence_ids = [eid for eid in payload.evidence_ids if eid in referenced_evidence]
+    unknown_evidence = [eid for eid in payload.evidence_ids if eid not in referenced_evidence]
+    if unknown_evidence:
+        raise HTTPException(status_code=400, detail=f"Unknown evidence_ids for mission: {unknown_evidence}")
+    evidence_ids = list(payload.evidence_ids)
     state = VerificationState.AGENT_ASSERTED
     if evidence_ids:
         state = VerificationState.EVIDENCE_SUPPORTED
