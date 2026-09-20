@@ -98,6 +98,18 @@ def test_graph_replay_and_risk():
             "policy_decision": "ALLOW",
         },
     )
+    client.post(
+        f"/missions/{mission_id}/events",
+        json={
+            "actor_id": "factory-agent-1",
+            "actor_type": "AUTONOMOUS_AGENT",
+            "action": "ROLLBACK",
+            "resource": "deploy-rollback",
+            "resource_type": "Deployment",
+            "source": "runner",
+            "policy_decision": "ALLOW",
+        },
+    )
 
     graph = client.get(f"/missions/{mission_id}/graph")
     assert graph.status_code == 200
@@ -107,10 +119,14 @@ def test_graph_replay_and_risk():
     replay = client.get(f"/missions/{mission_id}/replay", params={"human_intervention": True})
     assert replay.status_code == 200
     assert len(replay.json()["timeline"]) == 1
+    actor_replay = client.get(f"/missions/{mission_id}/replay", params={"actor_id": "human-approver"})
+    assert actor_replay.status_code == 200
+    assert len(actor_replay.json()["timeline"]) == 1
 
     risk = client.get(f"/missions/{mission_id}/risk")
     assert risk.status_code == 200
     assert risk.json()["level"] in {"LOW", "MEDIUM", "HIGH", "CRITICAL"}
+    assert risk.json()["dimensions"]["reversibility"] == "LOW"
 
 
 def test_event_payload_mission_mismatch_is_rejected():

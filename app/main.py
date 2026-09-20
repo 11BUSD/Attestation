@@ -248,7 +248,7 @@ def _risk(mission: MissionStore) -> dict[str, Any]:
         "blast_radius": "MEDIUM" if any(e.action == CanonicalEventAction.DEPLOYMENT_COMPLETED for e in mission.events) else "LOW",
         "data_sensitivity": "MEDIUM" if any(e.action == CanonicalEventAction.DATA_ACCESSED for e in mission.events) else "LOW",
         "privilege": "HIGH" if any(e.action == CanonicalEventAction.COMMAND_EXECUTED for e in mission.events) else "LOW",
-        "reversibility": "HIGH" if any(e.action == CanonicalEventAction.ROLLBACK for e in mission.events) else "MEDIUM",
+        "reversibility": "LOW" if any(e.action == CanonicalEventAction.ROLLBACK for e in mission.events) else "MEDIUM",
         "environment": "HIGH" if any(e.action == CanonicalEventAction.DEPLOYMENT_COMPLETED for e in mission.events) else "LOW",
         "change_size": "MEDIUM" if len([e for e in mission.events if e.action in {CanonicalEventAction.FILE_WRITTEN, CanonicalEventAction.COMMIT_CREATED}]) > 1 else "LOW",
         "dependency_impact": "LOW",
@@ -459,7 +459,7 @@ def mission_passport(mission_id: str) -> dict[str, Any]:
 @app.get("/missions/{mission_id}/replay")
 def mission_replay(
     mission_id: str,
-    agent: str | None = None,
+    actor_id: str | None = None,
     tool: str | None = None,
     resource: str | None = None,
     policy: str | None = None,
@@ -471,8 +471,8 @@ def mission_replay(
         raise HTTPException(status_code=404, detail="Mission not found")
 
     items = sorted(store.events, key=lambda x: x.timestamp)
-    if agent:
-        items = [x for x in items if x.actor_id == agent]
+    if actor_id:
+        items = [x for x in items if x.actor_id == actor_id]
     if tool:
         items = [x for x in items if x.action == CanonicalEventAction.TOOL_INVOKED and x.resource == tool]
     if resource:

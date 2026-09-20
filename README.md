@@ -25,6 +25,15 @@ uvicorn app.main:app --reload
 - `GET /missions/{mission_id}/risk`
 - `GET /missions/{mission_id}/claims`
 
+Replay filters:
+
+- `actor_id`
+- `tool`
+- `resource`
+- `policy`
+- `risk`
+- `human_intervention`
+
 ## Principles implemented
 
 - Canonical mission/event/evidence schema
