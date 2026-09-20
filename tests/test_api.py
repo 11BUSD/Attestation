@@ -52,6 +52,9 @@ def test_mission_lifecycle_endpoints():
     )
     assert evidence.status_code == 200
     evidence_id = evidence.json()["evidence_id"]
+    listed_evidence = client.get(f"/missions/{mission_id}/evidence")
+    assert listed_evidence.status_code == 200
+    assert listed_evidence.json()[0]["evidence_id"] == evidence_id
 
     claim = client.post(
         f"/missions/{mission_id}/verify",
@@ -63,6 +66,9 @@ def test_mission_lifecycle_endpoints():
     )
     assert claim.status_code == 200
     assert claim.json()["verification_state"] == "INDEPENDENTLY_VERIFIED"
+    claims = client.get(f"/missions/{mission_id}/claims")
+    assert claims.status_code == 200
+    assert claims.json()[0]["verification_state"] == "INDEPENDENTLY_VERIFIED"
 
     passport = client.get(f"/missions/{mission_id}/passport")
     assert passport.status_code == 200

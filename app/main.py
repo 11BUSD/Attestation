@@ -410,11 +410,11 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
     if not store:
         raise HTTPException(status_code=404, detail="Mission not found")
 
-    nodes = [
-        {"id": store.mission.authorized_by, "type": "Human"},
-        {"id": store.mission.actor_id, "type": "Agent"},
-        {"id": store.mission.mission_id, "type": "Mission"},
-    ]
+    nodes_by_id: dict[str, dict[str, str]] = {
+        store.mission.authorized_by: {"id": store.mission.authorized_by, "type": "Human"},
+        store.mission.actor_id: {"id": store.mission.actor_id, "type": "Agent"},
+        store.mission.mission_id: {"id": store.mission.mission_id, "type": "Mission"},
+    }
     edges = [
         {"from": store.mission.authorized_by, "to": store.mission.mission_id, "relationship": "AUTHORIZED"},
         {"from": store.mission.actor_id, "to": store.mission.mission_id, "relationship": "INITIATED"},
@@ -429,9 +429,9 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
     }
 
     for event in store.events:
-        nodes.append({"id": event.actor_id, "type": event.actor_type})
-        nodes.append({"id": event.event_id, "type": "Event"})
-        nodes.append({"id": event.resource, "type": event.resource_type})
+        nodes_by_id[event.actor_id] = {"id": event.actor_id, "type": event.actor_type}
+        nodes_by_id[event.event_id] = {"id": event.event_id, "type": "Event"}
+        nodes_by_id[event.resource] = {"id": event.resource, "type": event.resource_type}
         edges.append({"from": event.actor_id, "to": event.event_id, "relationship": "INITIATED"})
         edges.append(
             {
@@ -442,11 +442,11 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
         )
 
     for evidence in store.evidence:
-        nodes.append({"id": evidence.evidence_id, "type": "Evidence"})
+        nodes_by_id[evidence.evidence_id] = {"id": evidence.evidence_id, "type": "Evidence"}
         for ref in evidence.related_events:
             edges.append({"from": ref, "to": evidence.evidence_id, "relationship": "SUPPORTED_BY"})
 
-    return {"mission_id": mission_id, "nodes": nodes, "relationships": edges}
+    return {"mission_id": mission_id, "nodes": list(nodes_by_id.values()), "relationships": edges}
 
 
 @app.get("/missions/{mission_id}/passport")
@@ -518,7 +518,7 @@ def verify_claim(mission_id: str, payload: VerificationRequest) -> ClaimRecord:
         raise HTTPException(status_code=400, detail=f"Unknown evidence_ids for mission: {unknown_evidence}")
     evidence_ids = list(payload.evidence_ids)
     evidence_map = {e.evidence_id: e for e in store.evidence}
-    acceptable_evidence_status = {"VERIFIED", "INDEPENDENTLY_VERIFIED", "EVIDENCE_SUPPORTED"}
+    acceptable_evidence_status = {"VERIFIED"}
     all_evidence_verified = all(
         evidence_map[eid].verification_status.upper() in acceptable_evidence_status for eid in evidence_ids
     ) if evidence_ids else False
