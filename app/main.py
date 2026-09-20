@@ -411,9 +411,9 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Mission not found")
 
     nodes_by_id: dict[str, dict[str, str]] = {
-        store.mission.authorized_by: {"id": store.mission.authorized_by, "type": "Human"},
-        store.mission.actor_id: {"id": store.mission.actor_id, "type": "Agent"},
-        store.mission.mission_id: {"id": store.mission.mission_id, "type": "Mission"},
+        f"human:{store.mission.authorized_by}": {"id": store.mission.authorized_by, "type": "Human"},
+        f"actor:{store.mission.actor_id}": {"id": store.mission.actor_id, "type": "Agent"},
+        f"mission:{store.mission.mission_id}": {"id": store.mission.mission_id, "type": "Mission"},
     }
     edges = [
         {"from": store.mission.authorized_by, "to": store.mission.mission_id, "relationship": "AUTHORIZED"},
@@ -429,9 +429,9 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
     }
 
     for event in store.events:
-        nodes_by_id[event.actor_id] = {"id": event.actor_id, "type": event.actor_type}
-        nodes_by_id[event.event_id] = {"id": event.event_id, "type": "Event"}
-        nodes_by_id[event.resource] = {"id": event.resource, "type": event.resource_type}
+        nodes_by_id[f"actor:{event.actor_id}"] = {"id": event.actor_id, "type": event.actor_type}
+        nodes_by_id[f"event:{event.event_id}"] = {"id": event.event_id, "type": "Event"}
+        nodes_by_id[f"resource:{event.resource}"] = {"id": event.resource, "type": event.resource_type}
         edges.append({"from": event.actor_id, "to": event.event_id, "relationship": "INITIATED"})
         edges.append(
             {
