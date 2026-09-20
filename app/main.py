@@ -429,9 +429,10 @@ def mission_graph(mission_id: str) -> dict[str, Any]:
     }
 
     for event in store.events:
+        nodes.append({"id": event.actor_id, "type": event.actor_type})
         nodes.append({"id": event.event_id, "type": "Event"})
         nodes.append({"id": event.resource, "type": event.resource_type})
-        edges.append({"from": store.mission.actor_id, "to": event.event_id, "relationship": "INITIATED"})
+        edges.append({"from": event.actor_id, "to": event.event_id, "relationship": "INITIATED"})
         edges.append(
             {
                 "from": event.event_id,
@@ -481,13 +482,15 @@ def mission_replay(
         items = [x for x in items if x.policy_decision == policy]
     if human_intervention:
         items = [x for x in items if x.action == CanonicalEventAction.HUMAN_APPROVAL]
+    mission_risk = _risk(store)["level"]
     if risk:
-        current_risk = _risk(store)["level"]
-        if current_risk != risk.upper():
+        if mission_risk != risk.upper():
             items = []
 
     return {
         "mission_id": mission_id,
+        "mission_risk": mission_risk,
+        "risk_filter_scope": "mission",
         "timeline": [
             {
                 "timestamp": x.timestamp,
@@ -514,10 +517,15 @@ def verify_claim(mission_id: str, payload: VerificationRequest) -> ClaimRecord:
     if unknown_evidence:
         raise HTTPException(status_code=400, detail=f"Unknown evidence_ids for mission: {unknown_evidence}")
     evidence_ids = list(payload.evidence_ids)
+    evidence_map = {e.evidence_id: e for e in store.evidence}
+    acceptable_evidence_status = {"VERIFIED", "INDEPENDENTLY_VERIFIED", "EVIDENCE_SUPPORTED"}
+    all_evidence_verified = all(
+        evidence_map[eid].verification_status.upper() in acceptable_evidence_status for eid in evidence_ids
+    ) if evidence_ids else False
     state = VerificationState.AGENT_ASSERTED
     if evidence_ids:
         state = VerificationState.EVIDENCE_SUPPORTED
-    if evidence_ids and payload.independent_checks_passed:
+    if evidence_ids and payload.independent_checks_passed and all_evidence_verified:
         state = VerificationState.INDEPENDENTLY_VERIFIED
 
     claim = ClaimRecord(

@@ -31,7 +31,7 @@ Replay filters:
 - `tool`
 - `resource`
 - `policy`
-- `risk`
+- `risk` (mission-level predicate against computed mission risk)
 - `human_intervention`
 
 ## Principles implemented
